@@ -111,7 +111,6 @@ function initializeVue(listOfPlaces) {
         const { mobile, email, country,
           region, province, municipality, barangay } = Object.fromEntries(new FormData(e.target))
         this.errors = []
-        console.log(e)
 
         if (country === 'Philippines') {
           if (!region) this.errors.push('Region not selected.')
@@ -134,7 +133,11 @@ function initializeVue(listOfPlaces) {
           this.errors.push('Email must be non-DLSU.')
         }
 
-        if (this.errors.length) e.preventDefault();
+        if (this.errors.length) {
+            e.preventDefault()
+        } else {
+            e.target.method = "POST"
+        }
       },
 
       clearErrors() { this.errors = [] },
