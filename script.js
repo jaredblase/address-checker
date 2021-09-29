@@ -1,6 +1,8 @@
 const regs = [], provs = [], muns = [], brgys = []
 const mobileRegEx = /09\d{9}/
 const emailRegEx = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+const FIELD_NAMES = ['country', 'region', 'province', 'municipality', 'barangay', 'mobile', 'email']
+const FIELD_NAMES_SHORT = ['country', 'mobile', 'email']
 
 var xhttp = new XMLHttpRequest();
 xhttp.onreadystatechange = function () {
@@ -11,10 +13,19 @@ xhttp.onreadystatechange = function () {
 xhttp.open('GET', './data.json', true)
 xhttp.send()
 
+function finalCheck(elements, fieldNames) {
+  for (let i = 0; i < fieldNames.length; i++) {
+    console.log(elements[i].name, fieldNames[i])
+    if (elements[i].name !== fieldNames[i]) {
+      throw new Error()
+    }
+  }
+}
+
 function initializeVue(listOfPlaces) {
   const locationFields = {
     template: /*html*/`
-    <form class="ui form" @submit="checkForm" method="POST">
+    <form class="ui form" @submit.prevent="checkForm" method="POST">
       <div class="field">
         <label for="country">Country</label>
         <select name="country" id="country" class="ui fluid dropdown" @change='onInputChange'>
@@ -63,18 +74,17 @@ function initializeVue(listOfPlaces) {
         <label for="email">Personal Email Address (Non-DLSU)</label>
         <input type="email" name="email" id="email" class="ui input">
       </div>
-      <input type="submit" class="ui button">
-    </form>
-    
-    <div class="ui error message" v-if="errors.length">
-      <i class="close icon" @click="clearErrors"></i>
-      <div class="header">
-        There were some errors with your submission
+      <div class="ui error message visible" v-if="errors.length">
+        <i class="close icon" @click="clearErrors"></i>
+        <div class="header">
+          There were some errors with your submission
+        </div>
+        <ul class="list">
+          <li v-for="error in errors">{{ error }}</li>
+        </ul>
       </div>
-      <ul class="list">
-        <li v-for="error in errors">{{ error }}</li>
-      </ul>
-    </div>`,
+      <input type="submit" class="ui button">
+    </form>`,
 
     data: () => { return { errors: [] } },
 
@@ -112,6 +122,10 @@ function initializeVue(listOfPlaces) {
           region, province, municipality, barangay } = Object.fromEntries(new FormData(e.target))
         this.errors = []
 
+        if (!country) {
+          this.errors.push('Country not selected.')
+        }
+
         if (country === 'Philippines') {
           if (!region) this.errors.push('Region not selected.')
           if (!province) this.errors.push('Province not selected.')
@@ -133,10 +147,15 @@ function initializeVue(listOfPlaces) {
           this.errors.push('Email must be non-DLSU.')
         }
 
-        if (this.errors.length) {
-            e.preventDefault()
-        } else {
+        // final check
+        if (!this.errors.length) {
+          try {
+            finalCheck(e.target.elements, country === 'Philippines'? FIELD_NAMES : FIELD_NAMES_SHORT)
             e.target.method = "POST"
+            e.target.submit()
+          } catch(err) {
+            alert('This form has been tampered with! Please refresh.')
+          }
         }
       },
 
